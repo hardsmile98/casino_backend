@@ -5,7 +5,7 @@ const express = require('express');
 const { createServer } = require('http');
 const cors = require('cors')
 const app = express();
-const port = process.env.PORT || 3030;
+const port = 3030;
 const wssPort = process.env.PORT || 5005;
 const server = createServer(app).listen(wssPort);
 
