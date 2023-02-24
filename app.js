@@ -2,16 +2,18 @@ require('dotenv').config();
 const WebSocket = require('ws');
 const request = require('request')
 const express = require('express');
+const { createServer } = require('http');
 const cors = require('cors')
 const app = express();
-const port = 3000
+const port = 3000;
+const server = createServer(app);
 
 // * Global values * //
 let resultGames = [];
 let isConnection = true;
 let sessionId = '';
 
-const wsServer = new WebSocket.Server({ port: 4433 });
+const wsServer = new WebSocket.Server({ server });
 
 wsServer.on("connection", ws => {
   if(!isConnection) {
