@@ -5,8 +5,9 @@ const express = require('express');
 const { createServer } = require('http');
 const cors = require('cors')
 const app = express();
-const port = 3030;
-const server = createServer(app).listen(8081);
+const port = process.env.PORT || 3030;
+const wssPort = process.env.PORT || 8080;
+const server = createServer(app).listen(wssPort);
 
 // * Global values * //
 let resultGames = [];
