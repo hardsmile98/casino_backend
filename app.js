@@ -11,7 +11,7 @@ let resultGames = [];
 let isConnection = true;
 let sessionId = '';
 
-const wsServer = new WebSocket.Server({ port: 9000 });
+const wsServer = new WebSocket.Server({ port: 433 });
 
 wsServer.on("connection", ws => {
   if(!isConnection) {
