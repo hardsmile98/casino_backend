@@ -27,6 +27,10 @@ wsServer.on("connection", ws => {
   }));
 })
 
+wsServer.on('close', () => {
+  console.log('close')
+})
+
 // *  Казино  *//
 const tableId = process.env.TABLE_ID;
 const casinoUrl = process.env.CASINO_URL;
@@ -110,6 +114,8 @@ app.use(express.json());
 app.post('/api/newSessionId', function (req, res) {
   const { body } = req;
   const { sessionId: newId } = body;
+
+  console.log('newSessionId', newId)
 
   sessionId = newId;
   connect();
