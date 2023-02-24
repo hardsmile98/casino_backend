@@ -5,8 +5,8 @@ const express = require('express');
 const { createServer } = require('http');
 const cors = require('cors')
 const app = express();
-const port = 3000;
-const server = createServer(app);
+const port = 3030;
+const server = createServer(app).listen(8080);
 
 // * Global values * //
 let resultGames = [];
@@ -43,6 +43,30 @@ function connect() {
 
   const ws = new WebSocket(wsUrl, {});
 
+  const sendGames = () => {
+    console.log('send games');
+  
+    request(
+      getHistoryUrl,
+      (err, response, body) => {
+        const json = JSON.parse(body);
+        const results = json?.history?.map(game => game?.gameResult);
+
+        resultGames = results;
+
+        // Отсылаем результаты игр на клиент через сокет
+        wsServer.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              event: 'games',
+              data: results,
+            }));
+          }
+        });
+      }
+    )
+  }
+
   ws.onclose = () => {
     isConnection = false;
 
@@ -65,6 +89,8 @@ function connect() {
         }));
       }
     });
+
+    sendGames();
   }
 
   ws.onerror = () => {
@@ -78,26 +104,7 @@ function connect() {
       const isEndGame =  chank.includes('zoomOut');
 
       if(isEndGame) {
-        console.log('end game');
-        request(
-          getHistoryUrl,
-          (err, response, body) => {
-            const json = JSON.parse(body);
-            const results = json?.history?.map(game => game?.gameResult);
-
-            resultGames = results;
-
-            // Отсылаем результаты игр на клиент через сокет
-            wsServer.clients.forEach(function each(client) {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                  event: 'games',
-                  data: results,
-                }));
-              }
-            });
-          }
-        )
+        sendGames();
       }
     }
   });
