@@ -6,13 +6,14 @@ const { createServer } = require('http');
 const cors = require('cors')
 const app = express();
 const port = 3030;
-const wssPort = process.env.PORT || 5005;
+const wssPort = 8030;
 const server = createServer(app).listen(wssPort);
 
 // * Global values * //
 let resultGames = [];
 let isConnection = true;
 let sessionId = '';
+let reconectCount = 0;
 
 const wsServer = new WebSocket.Server({ server });
 
@@ -47,28 +48,41 @@ function connect() {
   const sendGames = () => {
     console.log('send games');
   
-    request(
-      getHistoryUrl,
-      (err, response, body) => {
-        const json = JSON.parse(body);
-        const results = json?.history?.map(game => game?.gameResult);
+    try {
+      request(
+        getHistoryUrl,
+        (err, response, body) => {
+          const json = JSON.parse(body);
+          const results = json?.history?.map(game => game?.gameResult);
 
-        resultGames = results;
+          resultGames = results;
 
-        // Отсылаем результаты игр на клиент через сокет
-        wsServer.clients.forEach(function each(client) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              event: 'games',
-              data: results,
-            }));
-          }
-        });
-      }
-    )
+          // Отсылаем результаты игр на клиент через сокет
+          wsServer.clients.forEach(function each(client) {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                event: 'games',
+                data: results,
+              }));
+            }
+          });
+        }
+      )
+    } catch (error) {
+      console.log(error);
+    }
+
   }
 
   ws.onclose = () => {
+    if (reconectCount === 0) {
+      
+      reconectCount++;
+      connect();
+      return;
+    }
+
+
     isConnection = false;
 
     wsServer.clients.forEach(function each(client) {
@@ -105,6 +119,10 @@ function connect() {
       const isEndGame =  chank.includes('zoomOut');
 
       if(isEndGame) {
+        if(reconectCount !== 0) {
+          reconectCount = 0;
+        }
+
         sendGames();
       }
     }
