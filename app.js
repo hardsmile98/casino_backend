@@ -37,15 +37,19 @@ function appStart() {
     }));
   })
 
-  tables.forEach((table) => {
-    connectToTable({
-      table,
-      sessionId,
-      resultGames,
-      isConnection,
-      wssServer,
+  const connectToAllTables = () => {
+    tables.forEach((table) => {
+      connectToTable({
+        table,
+        sessionId,
+        resultGames,
+        isConnection,
+        wssServer,
+      })
     })
-  })
+  }
+
+  connectToAllTables();
 
   app.use(cors({
     credentials: true,
@@ -60,7 +64,8 @@ function appStart() {
     console.log('newSessionId', newId)
 
     sessionId = newId;
-    connect();
+
+    connectToAllTables();
 
     res.status(200).send({ success: true });
   });
