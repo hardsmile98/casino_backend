@@ -3,14 +3,14 @@ const WebSocket = require('ws')
 
 const gamesCount = 20
 
-let reconectCount = 0
-
 // Получение данных с из стола
 function connectToTable ({
   table,
   sessionId,
   resultGames,
-  wssServer
+  wssServer,
+  wsTables,
+  connect
 }) {
   const { casinoUrl, tableId } = table || {}
 
@@ -49,14 +49,22 @@ function connectToTable ({
   }
 
   ws.onclose = () => {
-    if (reconectCount === 0) {
-      reconectCount++
+    if (connect.count === 0) {
+      connect.count = connect.count + 1
 
-      connectToTable({
+      wsTables = (wsTables || []).filter((wsTable) => wsTable.tableId !== tableId)
+
+      const newWs = connectToTable({
         table,
         sessionId,
         resultGames,
-        wssServer
+        wssServer,
+        connect
+      })
+
+      wsTables.push({
+        tableId,
+        wsTable: newWs
       })
 
       return
@@ -84,8 +92,8 @@ function connectToTable ({
       const isEndGame = chank.includes('zoomOut')
 
       if (isEndGame) {
-        if (reconectCount !== 0) {
-          reconectCount = 0
+        if (connect.count !== 0) {
+          connect.count = 0
         }
 
         sendGames()
