@@ -10,7 +10,6 @@ function connectToTable ({
   table,
   sessionId,
   resultGames,
-  isConnection,
   wssServer
 }) {
   const { casinoUrl, tableId } = table || {}
@@ -57,14 +56,11 @@ function connectToTable ({
         table,
         sessionId,
         resultGames,
-        isConnection,
         wssServer
       })
 
       return
     }
-
-    isConnection = false
 
     wssServer.clients.forEach(function each (client) {
       if (client.readyState === WebSocket.OPEN) {
@@ -76,12 +72,10 @@ function connectToTable ({
   }
 
   ws.onopen = () => {
-    isConnection = true
+    sendGames()
   }
 
-  ws.onerror = () => {
-    isConnection = false
-  }
+  ws.onerror = () => {}
 
   ws.on('message', (data) => {
     const chank = data.toString().replace(/^\d+/, '')
