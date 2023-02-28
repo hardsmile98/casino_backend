@@ -20,7 +20,7 @@ function appStart () {
 
   wssServer.on('connection', ws => {
     const isOpenWebsokets = wsTables
-      .filter(({ wsTable }) => wsTable.readyState === WebSocket.OPEN).length === tables.length
+      .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length === tables.length
 
     if (!isOpenWebsokets) {
       ws.send(JSON.stringify({ event: 'noConnection' }))
@@ -35,21 +35,14 @@ function appStart () {
 
   const connectToAllTables = () => {
     tables.forEach((table) => {
-      const connect = { count: 0 }
-
       const wsTable = connectToTable({
         table,
         sessionId,
         resultGames,
-        wssServer,
-        wsTables,
-        connect
+        wssServer
       })
 
-      wsTables.push({
-        wsTable,
-        tableId: table.tableId
-      })
+      wsTables.push(wsTable)
     })
 
     wssServer.clients.forEach(function each (client) {
@@ -62,7 +55,7 @@ function appStart () {
   }
 
   const closeAllTables = () => {
-    wsTables.forEach(({ wsTable }) => {
+    wsTables.forEach((wsTable) => {
       if (wsTable.readyState === WebSocket.OPEN) {
         wsTable.close()
       }
