@@ -47,9 +47,6 @@ function appStart () {
   const wssServer = new WebSocket.Server({ server })
 
   wssServer.on('connection', ws => {
-    wsTables.forEach(el => {
-      console.log(el.wsTable.readyState)
-    })
     const isOpenWebsokets = wsTables.filter(({ wsTable }) => wsTable.readyState === WebSocket.OPEN).length === tables.length
 
     if (!isOpenWebsokets) {
@@ -93,7 +90,7 @@ function appStart () {
 
   const closeAllTables = () => {
     wsTables.forEach(({ wsTable }) => {
-      if (wsTable.OPEN) {
+      if (wsTable.readyState === WebSocket.OPEN) {
         wsTable.close()
       }
     })
