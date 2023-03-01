@@ -79,9 +79,7 @@ function appStart () {
     console.log('newSessionId', newId)
 
     closeAllTables()
-
     sessionId = newId
-
     connectToAllTables()
 
     res.status(200).send({ success: true })
@@ -97,6 +95,13 @@ function appStart () {
     }
 
     res.status(200).json({ success: true, data: response })
+  })
+
+  app.post('/api/reconnectAll', function (req, res) {
+    closeAllTables()
+    connectToAllTables()
+
+    res.status(200).json({ success: true })
   })
 
   app.listen(port, () => {
