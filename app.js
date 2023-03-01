@@ -20,7 +20,7 @@ function appStart () {
 
   wssServer.on('connection', ws => {
     const isOpenWebsokets = wsTables
-      .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length === tables.length
+      .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length > 0
 
     if (!isOpenWebsokets) {
       ws.send(JSON.stringify({ event: 'noConnection' }))
