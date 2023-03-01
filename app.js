@@ -87,15 +87,13 @@ function appStart () {
     res.status(200).send({ success: true })
   })
 
-  app.get('/api/info', function (req, res) {
+  app.get('/api/infoTables', function (req, res) {
     const countOpenTables = wsTables
       .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length
 
     const response = {
-      tables: {
-        all: tables.length,
-        open: countOpenTables
-      }
+      all: tables.length,
+      open: countOpenTables
     }
 
     res.status(200).json({ success: true, data: response })
