@@ -8,18 +8,18 @@ const port = 3030
 const wssPort = 8030
 const server = createServer(app).listen(wssPort)
 const { connectToTable } = require('./connectToTable')
-const { tables } = require('./constants/tables')
+const tables = require('./constants/tables')
 
 function appStart () {
   // * Global values * //
   const resultGames = {}
-  let wsTables = []
+  let wsTables = {}
   let sessionId = ''
 
   const wssServer = new WebSocket.Server({ server })
 
   wssServer.on('connection', ws => {
-    const isOpenWebsokets = wsTables
+    const isOpenWebsokets = Object.values(wsTables)
       .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length > 0
 
     if (!isOpenWebsokets) {
@@ -35,14 +35,16 @@ function appStart () {
 
   const connectToAllTables = () => {
     tables.forEach((table) => {
-      const wsTable = connectToTable({
+      const reconnect = 0
+
+      connectToTable({
         table,
         sessionId,
         resultGames,
-        wssServer
+        wssServer,
+        reconnect,
+        wsTables
       })
-
-      wsTables.push(wsTable)
     })
 
     wssServer.clients.forEach(function each (client) {
@@ -55,13 +57,13 @@ function appStart () {
   }
 
   const closeAllTables = () => {
-    wsTables.forEach((wsTable) => {
+    Object.values(wsTables).forEach((wsTable) => {
       if (wsTable.readyState === WebSocket.OPEN) {
         wsTable.close()
       }
     })
 
-    wsTables = []
+    wsTables = {}
   }
 
   connectToAllTables()
@@ -86,7 +88,7 @@ function appStart () {
   })
 
   app.get('/api/infoTables', function (req, res) {
-    const countOpenTables = wsTables
+    const countOpenTables = Object.values(wsTables)
       .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length
 
     const response = {

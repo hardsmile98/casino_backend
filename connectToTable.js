@@ -8,7 +8,9 @@ function connectToTable ({
   table,
   sessionId,
   resultGames,
-  wssServer
+  wssServer,
+  reconnect,
+  wsTables
 }) {
   const { casinoUrl, tableId } = table || {}
 
@@ -46,7 +48,21 @@ function connectToTable ({
     }
   }
 
-  ws.onclose = (event) => {
+  ws.onclose = () => {
+    if (reconnect === 0) {
+      delete wsTables[tableId]
+
+      connectToTable({
+        table,
+        sessionId,
+        resultGames,
+        wssServer,
+        wsTables
+      })
+
+      return
+    }
+
     wssServer.clients.forEach(function each (client) {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({
@@ -58,6 +74,8 @@ function connectToTable ({
 
   ws.onopen = () => {
     sendGames()
+
+    wsTables[tableId] = ws
   }
 
   ws.onerror = () => {}
@@ -69,6 +87,8 @@ function connectToTable ({
       const isEndGame = chank.includes('zoomOut')
 
       if (isEndGame) {
+        reconnect = 0
+
         sendGames()
 
         ws.send('<ping />')
