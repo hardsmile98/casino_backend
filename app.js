@@ -90,8 +90,11 @@ function appStart () {
       .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length
 
     const response = {
-      all: tables.length,
-      open: countOpenTables
+      tables,
+      targets: {
+        all: tables.length,
+        open: countOpenTables
+      }
     }
 
     res.status(200).json({ success: true, data: response })
