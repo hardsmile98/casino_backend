@@ -7,66 +7,77 @@ const app = express()
 const port = 3030
 const wssPort = 8030
 const server = createServer(app).listen(wssPort)
-const { connectToTable } = require('./connectToTable')
-const tables = require('./constants/tables')
+
+const URL = 'wss://dga.pragmaticplaylive.net/ws'
+const PING_INTERVAL = 1000 * 10
 
 function appStart () {
-  // * Global values * //
-  const resultGames = {}
-  let wsTables = {}
-  let sessionId = ''
+  const gamesResult = {}
+  let casinoWss = null
 
   const wssServer = new WebSocket.Server({ server })
 
   wssServer.on('connection', ws => {
-    const isOpenWebsokets = Object.values(wsTables)
-      .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length > 0
-
-    if (!isOpenWebsokets) {
-      ws.send(JSON.stringify({ event: 'noConnection' }))
-      return
-    }
-
     ws.send(JSON.stringify({
       event: 'init',
-      data: resultGames
+      data: gamesResult
     }))
   })
 
-  const connectToAllTables = () => {
-    tables.forEach((table) => {
-      const reconnect = 0
+  const connectToCasino = () => {
+    const wssCasino = new WebSocket(URL, {})
+    let intervalId = null
 
-      connectToTable({
-        table,
-        sessionId,
-        resultGames,
-        wssServer,
-        reconnect,
-        wsTables
+    wssCasino.onmessage = (event) => {
+      const json = JSON.parse(event?.data || {})
+      const { tableId, tableName, last20Results } = json || {}
+
+      const result = {
+        tableName,
+        tableId,
+        resultGames: (last20Results || []).map((game) => ({
+          color: game.color,
+          result: game.result
+        })),
+        href: '-'
+      }
+      gamesResult[tableId] = result
+
+      wssServer.clients.forEach(function each (client) {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            event: 'games',
+            tableId,
+            data: result
+          }))
+        }
       })
-    })
+    }
 
-    wssServer.clients.forEach(function each (client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({
-          event: 'connection'
-        }))
-      }
-    })
+    wssCasino.onclose = () => {
+      clearInterval(intervalId)
+      casinoWss = null
+    }
+
+    wssCasino.onerror = () => {}
+
+    wssCasino.onopen = () => {
+      wssCasino.send(JSON.stringify({
+        type: 'subscribe',
+        casinoId: 'ppcdg00000003811',
+        key: [204, 225, 201, 230, 203, 227, 545, 240, 205, 229, 234, 221, 206],
+        currency: 'RUB'
+      }))
+
+      intervalId = setInterval(() => {
+        wssCasino.send(JSON.stringify({ event: 'ping' }))
+      }, PING_INTERVAL)
+    }
+
+    return wssCasino
   }
 
-  const closeAllTables = () => {
-    Object.values(wsTables).forEach((wsTable) => {
-      if (wsTable.readyState === WebSocket.OPEN) {
-        wsTable.close()
-      }
-    })
-
-    wsTables = {}
-  }
-
-  connectToAllTables()
+  casinoWss = connectToCasino()
 
   app.use(cors({
     credentials: true,
@@ -74,39 +85,17 @@ function appStart () {
   }))
   app.use(express.json())
 
-  app.post('/api/newSessionId', function (req, res) {
-    const { body } = req
-    const { sessionId: newId } = body
-
-    console.log('newSessionId', newId)
-
-    closeAllTables()
-    sessionId = newId
-    connectToAllTables()
-
-    res.status(200).send({ success: true })
-  })
-
-  app.get('/api/infoTables', function (req, res) {
-    const countOpenTables = Object.values(wsTables)
-      .filter((wsTable) => wsTable.readyState === WebSocket.OPEN).length
-
-    const response = {
-      tables,
-      targets: {
-        all: tables.length,
-        open: countOpenTables
-      }
+  app.post('/api/reconnect', function (_, res) {
+    if (casinoWss?.readyState === WebSocket.OPEN) {
+      casinoWss.close()
     }
-
-    res.status(200).json({ success: true, data: response })
+    casinoWss = connectToCasino()
+    res.status(200).json({ success: true })
   })
 
-  app.post('/api/reconnectAll', function (req, res) {
-    closeAllTables()
-    connectToAllTables()
-
-    res.status(200).json({ success: true })
+  app.get('/api/infoConnect', function (_, res) {
+    const isOpen = casinoWss?.readyState === WebSocket.OPEN
+    res.status(200).json({ success: true, isOpen })
   })
 
   app.listen(port, () => {
