@@ -7,6 +7,7 @@ const app = express()
 const port = 3030
 const wssPort = 8030
 const server = createServer(app).listen(wssPort)
+const hrefs = require('./constants/hrefs.json')
 
 const URL = 'wss://dga.pragmaticplaylive.net/ws'
 const PING_INTERVAL = 1000 * 10
@@ -39,7 +40,7 @@ function appStart () {
           color: game.color,
           result: game.result
         })),
-        href: '-'
+        href: hrefs[tableId] || '-'
       }
       gamesResult[tableId] = result
 
