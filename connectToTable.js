@@ -51,13 +51,15 @@ function connectToTable ({
   ws.onclose = () => {
     if (reconnect === 0) {
       delete wsTables[tableId]
+      reconnect++
 
       connectToTable({
         table,
         sessionId,
         resultGames,
         wssServer,
-        wsTables
+        wsTables,
+        reconnect
       })
 
       return
