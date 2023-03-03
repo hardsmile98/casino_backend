@@ -2,6 +2,7 @@ const request = require('request')
 const WebSocket = require('ws')
 
 const gamesCount = 20
+const RECONNECT_TIMEOUT = 1000 * 10
 
 // Получение данных из стола
 function connectToTable ({
@@ -48,19 +49,30 @@ function connectToTable ({
     }
   }
 
+  const reconnected = () => {
+    delete wsTables[tableId]
+
+    connectToTable({
+      table,
+      sessionId,
+      resultGames,
+      wssServer,
+      wsTables
+    })
+
+    reconnect++
+  }
+
   ws.onclose = () => {
     if (reconnect === 0) {
-      delete wsTables[tableId]
+      reconnected()
+      return
+    }
 
-      connectToTable({
-        table,
-        sessionId,
-        resultGames,
-        wssServer,
-        wsTables
-      })
-
-      reconnect++
+    if (reconnect === 1) {
+      setTimeout(() => {
+        reconnected()
+      }, RECONNECT_TIMEOUT)
     }
   }
 
