@@ -57,6 +57,7 @@ function connectToTable ({
       sessionId,
       resultGames,
       wssServer,
+      reconnect,
       wsTables
     })
 
