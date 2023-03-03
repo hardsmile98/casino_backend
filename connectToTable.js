@@ -60,16 +60,8 @@ function connectToTable ({
         wsTables
       })
 
-      return
+      reconnect++
     }
-
-    wssServer.clients.forEach(function each (client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({
-          event: 'noConnection'
-        }))
-      }
-    })
   }
 
   ws.onopen = () => {
