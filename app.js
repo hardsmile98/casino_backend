@@ -90,6 +90,7 @@ function appStart () {
 
   const connectToEzugi = () => {
     const wssCasino = new WebSocket(URL_EZUGI, {})
+    let intervalId = null
 
     wssCasino.onmessage = (event) => {
       const json = JSON.parse(event?.data || {})
@@ -129,14 +130,18 @@ function appStart () {
     }
 
     wssCasino.onclose = () => {
+      clearInterval(intervalId)
       ezugiWss = null
-      connectToEzugi()
     }
 
     wssCasino.onerror = () => {}
 
     wssCasino.onopen = () => {
       ezugiWss = wssCasino
+
+      intervalId = setInterval(() => {
+        wssCasino.send('EzugiPingMessage')
+      }, PING_INTERVAL)
     }
   }
 
