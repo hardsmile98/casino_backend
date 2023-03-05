@@ -7,14 +7,21 @@ const app = express()
 const port = 3030
 const wssPort = 8030
 const server = createServer(app).listen(wssPort)
-const hrefs = require('./constants/hrefs.json')
+const {
+  hrefsPragmatic,
+  eziguTablesIDS,
+  ezugiInfoTables
+} = require('./constants')
+const { getColorByValue } = require('./utils/getColorByValue')
 
-const URL = 'wss://dga.pragmaticplaylive.net/ws'
+const URL_PGRAGMATIC = 'wss://dga.pragmaticplaylive.net/ws'
+const URL_EZUGI = 'wss://engine.livetables.io/GameServer/lobby'
 const PING_INTERVAL = 1000 * 10
 
 function appStart () {
   const gamesResult = {}
-  let casinoWss = null
+  let pragmaticWss = null
+  let ezugiWss = null
 
   const wssServer = new WebSocket.Server({ server })
 
@@ -25,8 +32,8 @@ function appStart () {
     }))
   })
 
-  const connectToCasino = () => {
-    const wssCasino = new WebSocket(URL, {})
+  const connectToPragmatic = () => {
+    const wssCasino = new WebSocket(URL_PGRAGMATIC, {})
     let intervalId = null
 
     wssCasino.onmessage = (event) => {
@@ -34,13 +41,14 @@ function appStart () {
       const { tableId, tableName, last20Results } = json || {}
 
       const result = {
+        provaiderName: 'pragmatic',
         tableName,
         tableId,
         resultGames: (last20Results || []).map((game) => ({
           color: game.color,
           result: game.result
         })),
-        href: hrefs[tableId] || '-'
+        href: hrefsPragmatic[tableId] || '-'
       }
       gamesResult[tableId] = result
 
@@ -57,12 +65,14 @@ function appStart () {
 
     wssCasino.onclose = () => {
       clearInterval(intervalId)
-      casinoWss = null
+      pragmaticWss = null
     }
 
     wssCasino.onerror = () => {}
 
     wssCasino.onopen = () => {
+      pragmaticWss = wssCasino
+
       wssCasino.send(JSON.stringify({
         type: 'subscribe',
         casinoId: 'ppcdg00000003811',
@@ -78,7 +88,60 @@ function appStart () {
     return wssCasino
   }
 
-  casinoWss = connectToCasino()
+  const connectToEzugi = () => {
+    const wssCasino = new WebSocket(URL_EZUGI, {})
+
+    wssCasino.onmessage = (event) => {
+      const json = JSON.parse(event?.data || {})
+      const { tableId, subMessageType, History } = json || {}
+      const isNeedTable = eziguTablesIDS.includes(Number(tableId))
+      const isEventHistory = subMessageType === 'UPDATED_TABLE_HISTORY'
+      const isHistoryEmpty = History === undefined
+
+      if (isEventHistory && isNeedTable && !isHistoryEmpty) {
+        const info = ezugiInfoTables[tableId] || {}
+
+        const resultGames = (History || []).slice(-20).reverse().map(({ WinningNumber }) => ({
+          result: WinningNumber,
+          color: getColorByValue(WinningNumber)
+        }))
+
+        const result = {
+          provaiderName: 'ezugi',
+          tableName: info.tableName,
+          tableId,
+          resultGames,
+          href: info.href
+        }
+
+        gamesResult[tableId] = result
+
+        wssServer.clients.forEach(function each (client) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              event: 'games',
+              tableId,
+              data: result
+            }))
+          }
+        })
+      }
+    }
+
+    wssCasino.onclose = () => {
+      ezugiWss = null
+      connectToEzugi()
+    }
+
+    wssCasino.onerror = () => {}
+
+    wssCasino.onopen = () => {
+      ezugiWss = wssCasino
+    }
+  }
+
+  connectToPragmatic()
+  connectToEzugi()
 
   app.use(cors({
     credentials: true,
@@ -87,15 +150,22 @@ function appStart () {
   app.use(express.json())
 
   app.post('/api/reconnect', function (_, res) {
-    if (casinoWss?.readyState === WebSocket.OPEN) {
-      casinoWss.close()
+    if (pragmaticWss?.readyState === WebSocket.OPEN) {
+      pragmaticWss.close()
     }
-    casinoWss = connectToCasino()
+    if (ezugiWss?.readyState === WebSocket.OPEN) {
+      pragmaticWss.close()
+    }
+
+    pragmaticWss = connectToPragmatic()
+    ezugiWss = connectToPragmatic()
     res.status(200).json({ success: true })
   })
 
   app.get('/api/infoConnect', function (_, res) {
-    const isOpen = casinoWss?.readyState === WebSocket.OPEN
+    const isOpen = pragmaticWss?.readyState === WebSocket.OPEN &&
+      ezugiWss?.readyState === WebSocket.OPEN
+
     res.status(200).json({ success: true, isOpen })
   })
 
