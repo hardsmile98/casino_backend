@@ -14,11 +14,12 @@ jobs:
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        port: 22
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
         script: |
-          cd ~/home/danielwetan/apps/node1
+          nvm use 16
+          cd /home/apps/casino_backend
           git pull origin main
           git status
-          npm install --only=prod
-          pm2 restart node1
+          npm i
+          pm2 restart app
