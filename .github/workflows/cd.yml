@@ -17,8 +17,6 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
         script: |
-          export NVM_DIR=~/.nvm
-          source ~/.nvm/nvm.sh
           cd /home/apps/casino_backend
           git pull origin main
           git status
