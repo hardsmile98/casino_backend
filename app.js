@@ -159,11 +159,11 @@ function appStart () {
       pragmaticWss.close()
     }
     if (ezugiWss?.readyState === WebSocket.OPEN) {
-      pragmaticWss.close()
+      ezugiWss.close()
     }
 
     connectToPragmatic()
-    connectToPragmatic()
+    connectToEzugi()
 
     res.status(200).json({ success: true })
   })
