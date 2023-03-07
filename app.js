@@ -17,6 +17,7 @@ const { getColorByValue } = require('./utils/getColorByValue')
 const URL_PGRAGMATIC = 'wss://dga.pragmaticplaylive.net/ws'
 const URL_EZUGI = 'wss://engine.livetables.io/GameServer/lobby'
 const PING_INTERVAL = 1000 * 10
+const AUTO_RECONNECT_DELAY = 1000 * 30
 
 function appStart () {
   const gamesResult = {}
@@ -66,9 +67,12 @@ function appStart () {
     wssCasino.onclose = () => {
       clearInterval(intervalId)
       pragmaticWss = null
-    }
 
-    wssCasino.onerror = () => {}
+      setTimeout(() => {
+        wssCasino.removeAllListeners()
+        pragmaticWss = connectToPragmatic()
+      }, AUTO_RECONNECT_DELAY)
+    }
 
     wssCasino.onopen = () => {
       pragmaticWss = wssCasino
@@ -132,6 +136,11 @@ function appStart () {
     wssCasino.onclose = () => {
       clearInterval(intervalId)
       ezugiWss = null
+
+      setTimeout(() => {
+        wssCasino.removeAllListeners()
+        ezugiWss = connectToEzugi()
+      }, AUTO_RECONNECT_DELAY)
     }
 
     wssCasino.onerror = () => {}
