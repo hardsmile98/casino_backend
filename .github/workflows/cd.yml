@@ -2,7 +2,7 @@ name: Node.js CD
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -18,7 +18,7 @@ jobs:
         port: 22
         script: |
           cd ~/home/danielwetan/apps/node1
-          git pull origin master
+          git pull origin main
           git status
           npm install --only=prod
           pm2 restart node1
