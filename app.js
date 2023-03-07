@@ -162,8 +162,9 @@ function appStart () {
       pragmaticWss.close()
     }
 
-    pragmaticWss = connectToPragmatic()
-    ezugiWss = connectToPragmatic()
+    connectToPragmatic()
+    connectToPragmatic()
+
     res.status(200).json({ success: true })
   })
 
